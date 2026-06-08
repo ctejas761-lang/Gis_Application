@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<meta name="description" content="Central Chanda Geospatial Database - Forest Department GIS Portal">
+<meta name="theme-color" content="#1a5e35">
+<link rel="icon" href="../Logo/tiger_logo.jpg" type="image/jpeg">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/style.css">
+<script src="https://unpkg.com/proj4@2.8.1/dist/proj4.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/proj4leaflet@1.0.10/dist/proj4leaflet.js"></script>
+<title>Central Chanda Geospatial Database</title>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle sidebar">
+      <i class="fa-solid fa-bars"></i>
+    </button>
+    <img src="../Logo/Maha_Logo.jpeg" alt="Government Emblem">
+  </div>
+  <div class="header-center">
+    <h1>Central Chanda Geospatial Database</h1>
+    <div class="subtitle">Forest Department &bull; Maharashtra</div>
+  </div>
+  <div class="header-right">
+    <div class="social-icons">
+      <a href="https://www.instagram.com/YOUR_PAGE_NAME" target="_blank" title="Instagram" aria-label="Instagram">
+        <i class="fab fa-instagram"></i>
+      </a>
+      <a href="https://wa.me/7028338510" target="_blank" title="WhatsApp" aria-label="WhatsApp">
+        <i class="fab fa-whatsapp"></i>
+      </a>
+      <a href="mailto:tejaskchavan22@gmail.com" title="Email" aria-label="Email">
+        <i class="fas fa-envelope"></i>
+      </a>
+    </div>
+    <img src="../Logo/tiger_logo.jpg" alt="Tiger Logo">
+  </div>
+</header>
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading layers...</div>
+</div>
+<div class="toast-container" id="toastContainer"></div>
+<div id="map"></div>
+<div class="north-indicator" title="North">
+  <div class="north-arrow"></div>
+  <span>N</span>
+</div>
+<div class="zoom-indicator" id="zoomIndicator">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  Zoom: <span class="zoom-val" id="zoomValue">10</span>
+</div>
+<div class="kbd-hint" id="kbdHint">
+  <kbd>Scroll</kbd> Zoom &nbsp; <kbd>Ctrl+F</kbd> Search &nbsp; <kbd>Esc</kbd> Close
+</div>
+<div class="search-bar" id="searchBar">
+  <i class="fa-solid fa-magnifying-glass search-icon"></i>
+  <input type="text" id="searchInput" placeholder="Search layers, features, or coordinates..." autocomplete="off" aria-label="Search">
+  <div class="search-results" id="searchResults"></div>
+</div>
+<div class="sidebar" id="sidebar">
+  <div class="sidebar-header">
+    <h2><i class="fa-solid fa-layer-group"></i> Map Layers</h2>
+    <button class="sidebar-close" id="sidebarClose" aria-label="Close sidebar">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+  <div class="layer-section open">
+    <div class="layer-section-header" role="button" tabindex="0" aria-expanded="true">
+      <span class="section-label"><i class="fa-solid fa-map"></i> Basemap</span>
+      <i class="fa-solid fa-chevron-down chevron"></i>
+    </div>
+    <div class="layer-section-body">
+      <div class="basemap-options">
+        <label class="basemap-option">
+          <input type="radio" name="basemap" value="googleHybrid" checked>
+          <span class="basemap-radio"></span>
+          <span class="basemap-label"><i class="fa-solid fa-satellite" style="color:#5B9BD5;"></i> Google Hybrid</span>
+        </label>
+        <label class="basemap-option">
+          <input type="radio" name="basemap" value="googleStreets">
+          <span class="basemap-radio"></span>
+          <span class="basemap-label"><i class="fa-solid fa-road" style="color:#F4A460;"></i> Google Streets</span>
+        </label>
+        <label class="basemap-option">
+          <input type="radio" name="basemap" value="satellite">
+          <span class="basemap-radio"></span>
+          <span class="basemap-label"><i class="fa-solid fa-globe" style="color:#2E8B57;"></i> Satellite (Esri)</span>
+        </label>
+        <label class="basemap-option">
+          <input type="radio" name="basemap" value="osm">
+          <span class="basemap-radio"></span>
+          <span class="basemap-label"><i class="fa-solid fa-map-location-dot" style="color:#4CAF50;"></i> OpenStreetMap</span>
+        </label>
+        <label class="basemap-option">
+          <input type="radio" name="basemap" value="dark">
+          <span class="basemap-radio"></span>
+          <span class="basemap-label"><i class="fa-solid fa-moon" style="color:#6C757D;"></i> Dark Map</span>
+        </label>
+      </div>
+    </div>
+  </div>
+  <div class="layer-section open">
+    <div class="layer-section-header" role="button" tabindex="0" aria-expanded="true">
+      <span class="section-label"><i class="fa-solid fa-draw-polygon"></i> Boundary Layers</span>
+      <i class="fa-solid fa-chevron-down chevron"></i>
+    </div>
+    <div class="layer-section-body">
+      <div class="layer-item">
+        <input type="checkbox" id="chkDivision" onchange="toggleLayer(divisionLayer, this.checked)">
+        <label for="chkDivision">Division Boundary</label>
+      </div>
+      <div class="layer-item">
+        <input type="checkbox" id="chkRange" onchange="toggleLayer(rangeLayer, this.checked)">
+        <label for="chkRange">Range Boundary</label>
+      </div>
+      <div class="layer-item">
+        <input type="checkbox" id="chkRound" checked onchange="toggleLayer(roundLayer, this.checked)">
+        <label for="chkRound">Round Boundary</label>
+      </div>
+      <div class="layer-item">
+        <input type="checkbox" id="chkBeat" onchange="toggleLayer(beatLayer, this.checked)">
+        <label for="chkBeat">Beat Boundary</label>
+      </div>
+      <div class="layer-item">
+        <input type="checkbox" id="chkCompartment" onchange="toggleLayer(compartmentLayer, this.checked)">
+        <label for="chkCompartment">Compartment Boundary</label>
+      </div>
+      <div class="layer-item">
+        <input type="checkbox" id="chkVillage" onchange="toggleLayer(villageLayer, this.checked)">
+        <label for="chkVillage">Village Boundary</label>
+      </div>
+      <div class="layer-item">
+        <input type="checkbox" id="chkFirewatchtower" onchange="toggleLayer(firewatchtowerLayer, this.checked)">
+        <label for="chkFirewatchtower">Fire Watch Tower</label>
+      </div>
+    </div>
+  </div>
+  <div class="layer-section">
+    <div class="layer-section-header" role="button" tabindex="0" aria-expanded="false">
+      <span class="section-label"><i class="fa-solid fa-satellite"></i> Dynamic Change</span>
+      <i class="fa-solid fa-chevron-down chevron"></i>
+    </div>
+    <div class="layer-section-body">
+      <div class="dropdown-panel" id="geePanel">
+        <div class="panel-title"><i class="fa-solid fa-chart-line"></i> Select Parameter</div>
+        <select id="geeSelect">
+          <option value="">-- Select Parameter --</option>
+          <option value="ndvi">Normalized Difference Vegetation Index</option>
+          <option value="evi">Enhanced Vegetation Index</option>
+          <option value="rainfall">Rainfall</option>
+          <option value="temperature">Temperature</option>
+          <option value="vhi">Vegetation Health Index</option>
+          <option value="tci">Temperature Condition Index</option>
+          <option value="vci">Vegetation Condition Index</option>
+          <option value="forest_health">Forest Health Index</option>
+          <option value="plantation">Plantation Suitability Index</option>
+          <option value="fsi">Forest Density Classification</option>
+          <option value="fsi_alert">FSI Fire Alerts</option>
+          <option value="lulc">Land Use Land Cover</option>
+          <option value="Waterbody">Water Availability Index</option>
+          <option value="Deforest_Loss_Gain">Deforest (Loss and Gain)</option>
+          <option value="FOREST_DROUGHT_STRESS_INDEX">Forest Drought Stress Index</option>
+          <option value="FOREST_GROWTH_RATE_INDEX">Forest Growth Rate Index</option>
+          <option value="Above_Ground_Biomass">Above Ground Biomass</option>
+          <option value="Below_Ground_Biomass">Below Ground Biomass</option>
+          <option value="canopy_height_models">Canopy Height Models</option>
+        </select>
+        <button onclick="openGEE()"><i class="fa-solid fa-external-link-alt"></i> Load Layer</button>
+      </div>
+    </div>
+  </div>
+  <div class="layer-section">
+    <div class="layer-section-header" role="button" tabindex="0" aria-expanded="false">
+      <span class="section-label"><i class="fa-solid fa-mountain"></i> Soil Thematic</span>
+      <i class="fa-solid fa-chevron-down chevron"></i>
+    </div>
+    <div class="layer-section-body">
+      <div class="dropdown-panel" id="staticPanel">
+        <div class="panel-title"><i class="fa-solid fa-layer-group"></i> Select Soil Layer</div>
+        <select id="staticSelect">
+          <option value="">-- Select Layer --</option>
+          <option value="Soil_Depth">Soil Depth</option>
+          <option value="Soil_Erosion">Soil Erosion</option>
+          <option value="Soil_Slope">Soil Slope</option>
+          <option value="Soil_Productivity">Soil Productivity</option>
+          <option value="Soil_Texture">Soil Texture</option>
+        </select>
+        <button onclick="loadStaticLayer()"><i class="fa-solid fa-eye"></i> Load Layer</button>
+      </div>
+    </div>
+  </div>
+  <div class="layer-section">
+    <div class="layer-section-header" role="button" tabindex="0" aria-expanded="false">
+      <span class="section-label"><i class="fa-solid fa-water"></i> Water Layers</span>
+      <i class="fa-solid fa-chevron-down chevron"></i>
+    </div>
+    <div class="layer-section-body">
+      <div class="dropdown-panel" id="poiPanel">
+        <div class="panel-title"><i class="fa-solid fa-tint"></i> Select Water Layer</div>
+        <select id="poiSelect">
+          <option value="">-- Select Layer --</option>
+          <option value="waterbody">Waterbody</option>
+          <option value="streamNetwork">Stream Network</option>
+        </select>
+        <button onclick="loadPoiLayer()"><i class="fa-solid fa-eye"></i> Load Layer</button>
+      </div>
+    </div>
+  </div>
+  <div class="layer-section">
+    <div class="layer-section-header" role="button" tabindex="0" aria-expanded="false">
+      <span class="section-label"><i class="fa-solid fa-paw"></i> Wildlife Sanctuaries</span>
+      <i class="fa-solid fa-chevron-down chevron"></i>
+    </div>
+    <div class="layer-section-body">
+      <div class="dropdown-panel" id="otherPanel">
+        <div class="panel-title"><i class="fa-solid fa-shield-alt"></i> Select Layer</div>
+        <select id="otherSelect">
+          <option value="">-- Select Layer --</option>
+          <option value="fdcm">FDCM Boundary</option>
+          <option value="kanhargaon">Kanhargaon WLS</option>
+        </select>
+        <button onclick="loadOtherLayer()"><i class="fa-solid fa-eye"></i> Load Layer</button>
+      </div>
+    </div>
+  </div>
+  <div class="layer-section">
+    <div class="layer-section-header" role="button" tabindex="0" aria-expanded="false">
+      <span class="section-label"><i class="fa-solid fa-building"></i> Forest Office</span>
+      <i class="fa-solid fa-chevron-down chevron"></i>
+    </div>
+    <div class="layer-section-body">
+      <div class="dropdown-panel" id="officePanel">
+        <div class="panel-title"><i class="fa-solid fa-map-marker-alt"></i> Select Office</div>
+        <select id="officeSelect">
+          <option value="">-- Select Layer --</option>
+          <option value="rangeoffice">Range Office Headquarters</option>
+          <option value="roundoffice">Round Office</option>
+          <option value="restHouse">Rest House</option>
+        </select>
+        <button onclick="loadOfficeLayer()"><i class="fa-solid fa-eye"></i> Load Layer</button>
+      </div>
+    </div>
+  </div>
+  <div class="layer-section">
+    <div class="layer-section-header" role="button" tabindex="0" aria-expanded="false">
+      <span class="section-label"><i class="fa-solid fa-binoculars"></i> Safari</span>
+      <i class="fa-solid fa-chevron-down chevron"></i>
+    </div>
+    <div class="layer-section-body">
+      <div class="dropdown-panel" id="safariPanel">
+        <div class="panel-title"><i class="fa-solid fa-route"></i> Select Safari</div>
+        <select id="safariSelect">
+          <option value="">-- Select Layer --</option>
+          <option value="jogapur">Jogapur Safari</option>
+          <option value="karwa">Karwa Safari</option>
+        </select>
+        <button onclick="loadSafariLayer()"><i class="fa-solid fa-eye"></i> Load Layer</button>
+      </div>
+    </div>
+  </div>
+  <div class="layer-section">
+    <div class="layer-section-header" role="button" tabindex="0" aria-expanded="false">
+      <span class="section-label"><i class="fa-solid fa-tree"></i> Coupe Plantation</span>
+      <i class="fa-solid fa-chevron-down chevron"></i>
+    </div>
+    <div class="layer-section-body">
+      <div class="dropdown-panel" id="Coupe_plantation">
+        <div class="panel-title"><i class="fa-solid fa-seedling"></i> Select Plantation</div>
+        <select id="Coupe_plantationSelect">
+          <option value="">-- Select Layer --</option>
+          <option value="IWC">IWC Plantation</option>
+          <option value="FWC">FWC Plantation</option>
+          <option value="SCI">SCI Plantation</option>
+          <option value="OTPL">OTPL Plantation</option>
+        </select>
+        <button onclick="loadCoupe_plantationLayers()"><i class="fa-solid fa-eye"></i> Load Layer</button>
+      </div>
+    </div>
+  </div>
+  <div class="layer-section">
+    <div class="layer-section-header" role="button" tabindex="0" aria-expanded="false">
+      <span class="section-label"><i class="fa-solid fa-ruler-combined"></i> Tools</span>
+      <i class="fa-solid fa-chevron-down chevron"></i>
+    </div>
+    <div class="layer-section-body">
+      <div class="layer-item">
+        <input type="checkbox" id="chkMeasure" onchange="toggleUIPanel('measurePanel', this.checked)">
+        <label for="chkMeasure">Measurement Tool</label>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="measurePanel">
+  <div class="measure-header">
+    <h3><i class="fa-solid fa-ruler-combined"></i> Measure</h3>
+    <button class="measure-close" id="measurePanelClose" aria-label="Close measurement panel">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
+  </div>
+  <div class="measure-body">
+    <div class="measure-status" id="measureStatus">
+      <span class="status-dot"></span> <span id="measureStatusText">Select a tool to start</span>
+    </div>
+    <div class="measure-grid">
+      <button id="measureLineBtn" class="measure-btn" type="button" title="Measure Distance">
+        <i class="fa-solid fa-ruler-horizontal"></i>
+        <span>Distance</span>
+      </button>
+      <button id="measurePolygonBtn" class="measure-btn" type="button" title="Measure Area">
+        <i class="fa-solid fa-draw-polygon"></i>
+        <span>Area</span>
+      </button>
+      <button id="measureCircleBtn" class="measure-btn" type="button" title="Measure Circle">
+        <i class="fa-regular fa-circle"></i>
+        <span>Circle</span>
+      </button>
+      <button id="measureInputCoordBtn" class="measure-btn" type="button" title="Input Coordinates">
+        <i class="fa-solid fa-location-dot"></i>
+        <span>Coordinate</span>
+      </button>
+      <div class="measure-divider"></div>
+      <button id="measureExportKMLBtn" class="measure-btn" type="button" title="Export KML">
+        <i class="fa-solid fa-file-export"></i>
+        <span>Export</span>
+      </button>
+      <button id="measureImportBtn" class="measure-btn" type="button" title="Import File">
+        <i class="fa-solid fa-file-import"></i>
+        <span>Import</span>
+      </button>
+      <div class="measure-divider"></div>
+      <button id="measureUndoBtn" class="measure-btn" type="button" title="Undo Last Point">
+        <i class="fa-solid fa-rotate-left"></i>
+        <span>Undo</span>
+      </button>
+      <button id="measureClearBtn" class="measure-btn clear" type="button" title="Clear All">
+        <i class="fa-solid fa-trash-can"></i>
+        <span>Clear</span>
+      </button>
+      <button id="clearImportedKMLBtn" class="measure-btn clear" type="button" title="Clear Imported KML">
+        <i class="fa-solid fa-eraser"></i>
+        <span>Clear KML</span>
+      </button>
+    </div>
+    <div class="measure-result" id="measureResult"></div>
+    <div class="coord-input-panel" id="coordInputPanel">
+      <input id="coordinateInputLat" type="text" placeholder="Lat: 19 43 59.2 N">
+      <input id="coordinateInputLng" type="text" placeholder="Lon: 79 23 57.4 E">
+      <div class="coord-btn-row">
+        <button class="coord-btn-plot" id="plotCoordinateBtn">Plot</button>
+        <button class="coord-btn-cancel" id="closeCoordinateInputBtn">Cancel</button>
+      </div>
+    </div>
+  </div>
+  <input type="file" id="importFileInput" accept=".kml,.geojson,.json" style="display: none;">
+</div>
+<div id="pointInfoPopup">
+  <div class="popup-header">
+    <h4><i class="fa-solid fa-location-dot"></i> <span id="popupTitle">Point Info</span></h4>
+    <button class="popup-close" id="popupCloseBtn" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+  </div>
+  <div class="popup-body">
+    <div class="info-section coords-section">
+      <div class="info-section-title" style="color: var(--primary);"><i class="fa-solid fa-compass"></i> Coordinates</div>
+      <div class="info-row">
+        <div class="info-field">
+          <div class="info-label">Latitude (DD)</div>
+          <div class="info-value" id="popupLat">&mdash;</div>
+        </div>
+        <div class="info-field">
+          <div class="info-label">Longitude (DD)</div>
+          <div class="info-value" id="popupLng">&mdash;</div>
+        </div>
+        <div class="info-field">
+          <div class="info-label">Latitude (DMS)</div>
+          <div class="info-value" id="popupLatDMS">&mdash;</div>
+        </div>
+        <div class="info-field">
+          <div class="info-label">Longitude (DMS)</div>
+          <div class="info-value" id="popupLngDMS">&mdash;</div>
+        </div>
+      </div>
+      <div class="popup-coord-input" id="popupCoordInput">
+        <div class="coord-field">
+          <label for="popupInputLat">Latitude</label>
+          <input id="popupInputLat" type="text" placeholder="19 43 59.2 N">
+        </div>
+        <div class="coord-field">
+          <label for="popupInputLng">Longitude</label>
+          <input id="popupInputLng" type="text" placeholder="79 23 57.4 E">
+        </div>
+        <div class="popup-coord-btns">
+          <button class="popup-coord-plot-btn" id="popupPlotCoordBtn"><i class="fa-solid fa-location-crosshairs"></i> Plot</button>
+          <button class="popup-coord-cancel-btn" id="popupCancelCoordBtn"><i class="fa-solid fa-xmark"></i> Clear</button>
+        </div>
+      </div>
+    </div>
+    <div class="info-section distance-section" id="popupDistanceSection" style="display: none;">
+      <div class="info-section-title" style="color: #e65100;"><i class="fa-solid fa-ruler-horizontal"></i> Distance</div>
+      <div class="info-row">
+        <div class="info-field">
+          <div class="info-label">From Previous Point</div>
+          <div class="info-value" id="popupDistPrev">&mdash;</div>
+        </div>
+        <div class="info-field">
+          <div class="info-label">Total Distance</div>
+          <div class="info-value" id="popupDistTotal">&mdash;</div>
+        </div>
+      </div>
+    </div>
+    <div class="info-section bearing-section" id="popupBearingSection" style="display: none;">
+      <div class="info-section-title" style="color: #1565c0;"><i class="fa-solid fa-compass-drafting"></i> Bearing</div>
+      <div class="info-row">
+        <div class="info-field">
+          <div class="info-label">Bearing</div>
+          <div class="info-value" id="popupBearing">&mdash;</div>
+        </div>
+        <div class="info-field">
+          <div class="info-label">Direction</div>
+          <div class="info-value" id="popupDirection">&mdash;</div>
+        </div>
+      </div>
+    </div>
+    <div class="info-section extra-section">
+      <div class="info-section-title" style="color: #616161;"><i class="fa-solid fa-circle-info"></i> Additional</div>
+      <div class="info-row">
+        <div class="info-field">
+          <div class="info-label">Point Number</div>
+          <div class="info-value" id="popupPointNum">&mdash;</div>
+        </div>
+        <div class="info-field">
+          <div class="info-label">Time</div>
+          <div class="info-value" id="popupTime">&mdash;</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="popup-footer">
+    <button class="popup-zoom-btn" id="popupZoomBtn"><i class="fa-solid fa-magnifying-glass-plus"></i> Zoom to Point</button>
+  </div>
+</div>
+<script src="../js/main.js"></script>
+</body>
+</html>
